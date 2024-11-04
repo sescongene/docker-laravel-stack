@@ -1,0 +1,69 @@
+version: "3"
+
+networks:
+  web:
+
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile
+    image: nginx:stable-alpine
+    container_name: devkit_nginx
+    ports:
+      - "${HOST_NGINX_PORT:-80}:80"
+    working_dir: /var/www
+    volumes:
+      - ./projects:/var/www
+      - ./config/nginx:/etc/nginx/conf.d
+      # - ./docker/nginx/reload.sh:/usr/local/bin/monitor-nginx.sh
+    depends_on:
+      - php8.2
+      - php8.3
+    networks:
+      - web
+
+  php8.2:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile-8.2
+    container_name: devkit_php8.2
+    working_dir: /var/www
+    volumes:
+      - ./projects:/var/www
+      - ./config/php8.2/local.ini:/usr/local/etc/php/conf.d/local.ini
+    ports:
+      - "${PHP_82_PORT:-9002}:9000"
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    networks:
+      - web
+
+  php8.3:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile-8.3
+    container_name: devkit_php8.3
+    working_dir: /var/www
+    volumes:
+      - ./projects:/var/www
+      - ./config/php8.2/local.ini:/usr/local/etc/php/conf.d/local.ini
+    ports:
+      - "${PHP_83_PORT:-9003}:9000"
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    networks:
+      - web
+
+  redis:
+    image: redis:alpine
+    container_name: devkit_redis
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "${HOST_REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./docker/redis:/var/lib/redis
+    networks:
+      - web
